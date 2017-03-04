@@ -1,0 +1,4 @@
+name: sudoku_web
+dependencies:
+  sudoku_core:
+    git: git://github.com/psiroki/sudoku_core.git
