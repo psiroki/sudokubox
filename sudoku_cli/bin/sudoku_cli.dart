@@ -13,8 +13,7 @@ class GenerationResult {
 }
 
 Duration percentileDuration(Iterable<Duration> durations, double percentile) {
-  if (durations.length == 1)
-    return durations.first;
+  if (durations.length == 1) return durations.first;
   double position = durations.length * percentile;
   double positionFraction = position % 1;
   if (positionFraction == 0) return durations.skip(position.floor()).first;
@@ -103,6 +102,7 @@ final Map<String, CommandParser> commandParsers = new Map.unmodifiable({
   },
   "solve": (ArgResults result) {
     bool showSteps = result["steps"];
+    bool time = result["time"];
     String problem = result.rest[0];
     if (problem == "-") problem = stdin.readLineSync();
     SudokuBoard problemBoard = new SudokuBoard.fromString(problem);
@@ -113,9 +113,23 @@ final Map<String, CommandParser> commandParsers = new Map.unmodifiable({
       env.dump(loupe: problemBoard.loupe);
     }
 
+    Stopwatch watch = new Stopwatch();
+    watch.start();
     searchSolution(problemBoard, env: env).forEach(print);
+    watch.stop();
+    if (time) stderr.writeln("Time took to solve: ${watch.elapsed}");
   },
 });
+
+void writeHelp(ArgParser parser, StringSink target) {
+  target.write("Parameters: \n  ");
+  target.writeln(parser.usage.replaceAll("\n", "\n  "));
+  if (parser.commands.isNotEmpty) {
+    target.writeln("\nCommand help: ");
+    for (String cmd in parser.commands.keys.toList(growable: false)..sort())
+      target.writeln("\tsudoku_cli.dart ${cmd} --help");
+  }
+}
 
 void main(List<String> args) {
   ArgParser parser = new ArgParser();
@@ -123,14 +137,25 @@ void main(List<String> args) {
     ..addOption("count",
         abbr: "c",
         defaultsTo: "100",
-        help: "Number of problems to generate (default is 100)");
+        help: "Number of problems to generate (default is 100)")
+    ..addFlag("help", abbr: "h", help: "Display help", negatable: false);
   parser.addCommand("solve")
-    ..addFlag("steps", abbr: "s", help: "Show solve steps");
+    ..addFlag("steps", abbr: "s", help: "Show solve steps")
+    ..addFlag("time", abbr: "t", help: "Provide timing")
+    ..addFlag("help", abbr: "h", help: "Display help", negatable: false);
+  parser.addFlag("help", abbr: "h", help: "Display help", negatable: false);
   ArgResults result = parser.parse(args);
   if (result.command == null) {
-    generateProblems(1);
+    if (result["help"]) {
+      writeHelp(parser, stderr);
+    } else
+      generateProblems(1);
   } else {
-    CommandParser commandParser = commandParsers[result.command.name];
-    commandParser(result.command);
+    if (result.command["help"]) {
+      writeHelp(parser.commands[result.command.name], stderr);
+    } else {
+      CommandParser commandParser = commandParsers[result.command.name];
+      commandParser(result.command);
+    }
   }
 }
