@@ -13,6 +13,8 @@ class GenerationResult {
 }
 
 Duration percentileDuration(Iterable<Duration> durations, double percentile) {
+  if (durations.length == 1)
+    return durations.first;
   double position = durations.length * percentile;
   double positionFraction = position % 1;
   if (positionFraction == 0) return durations.skip(position.floor()).first;
@@ -65,8 +67,10 @@ void generateProblems(int problemCount) {
 
   boards.sort((a, b) => a.generationTime.compareTo(b.generationTime));
 
-  stderr.writeln(
-      "The boards in generation time order (the last one took the longest):");
+  if (count > 1) {
+    stderr.writeln(
+        "The boards in generation time order (the last one took the longest):");
+  }
   print(boards.join("\n"));
 
   Iterable<Duration> generationTimes = boards.map((e) => e.generationTime);
@@ -75,13 +79,18 @@ void generateProblems(int problemCount) {
   Duration avg =
       new Duration(microseconds: overallDuration.inMicroseconds ~/ count);
 
-  stderr.writeln("min: $min");
-  stderr.writeln("max: $max");
-  stderr.writeln("avg: ${avg}");
-  stderr.writeln("med: ${median}");
-  stderr.writeln("90%: ${percentile90}");
-  stderr.writeln("Overall: ${overallDuration}");
-  stderr.writeln("\nThe board that took the longest to generate:");
+  if (count > 1) {
+    stderr.writeln("min: $min");
+    stderr.writeln("max: $max");
+    stderr.writeln("avg: ${avg}");
+    stderr.writeln("med: ${median}");
+    stderr.writeln("90%: ${percentile90}");
+    stderr.writeln("Overall: ${overallDuration}");
+    stderr.writeln("\nThe board that took the longest to generate:");
+  } else {
+    stderr.writeln("time: ${avg}");
+    stderr.writeln();
+  }
   writeBoard(boards.last.board, stderr);
 }
 
